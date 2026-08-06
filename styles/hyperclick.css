@@ -1,0 +1,15 @@
+/* The affordance is drawn as a highlight decoration rather than a text
+ * decoration: the editor merges every overlapping text decoration onto one
+ * span with one `text-decoration`, so an underline drawn that way would fight
+ * whatever else marks the same range. A highlight region is its own box and
+ * composes with anything. */
+atom-text-editor .highlights .hyperclick .region {
+  border-bottom: 1px solid var(--text-color-info);
+  pointer-events: none;
+}
+
+/* While a suggestion is showing, the pointer says so. */
+atom-text-editor.hyperclick,
+atom-text-editor.hyperclick .scroll-view {
+  cursor: pointer;
+}

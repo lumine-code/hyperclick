@@ -1,0 +1,79 @@
+{
+  "name": "hyperclick",
+  "author": "lumine-code",
+  "version": "1.0.0",
+  "description": "Follow the symbol under the pointer to its definition with a click.",
+  "keywords": [
+    "go-to-definition",
+    "declaration",
+    "navigation",
+    "ctrl-click",
+    "underline"
+  ],
+  "repository": "https://github.com/lumine-code/hyperclick",
+  "bugs": {
+    "url": "https://github.com/lumine-code/hyperclick/issues"
+  },
+  "license": "MIT",
+  "main": "./lib/main",
+  "files": [
+    "docs",
+    "lib",
+    "spec",
+    "styles"
+  ],
+  "engines": {
+    "lumine": "^1.0.0",
+    "node": ">=24"
+  },
+  "backgroundTips": [
+    "{% if keys['hyperclick:confirm-cursor'] %}You can follow the symbol under the cursor to its definition with {{ 'hyperclick:confirm-cursor' | keystroke }}{% else %}You can hold Alt and click a symbol to jump to its definition.{% endif %}"
+  ],
+  "scripts": {
+    "test": "lumine --test spec",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "configSchema": {
+    "modifier": {
+      "title": "Modifier",
+      "description": "The key held down to turn symbols into links. Ctrl (Cmd on macOS) is also the editor's add-a-cursor modifier, so choosing it trades one for the other.",
+      "type": "string",
+      "enum": [
+        {
+          "value": "alt",
+          "description": "Alt"
+        },
+        {
+          "value": "ctrl",
+          "description": "Ctrl (Cmd on macOS)"
+        }
+      ],
+      "default": "alt"
+    },
+    "hoverDelay": {
+      "title": "Hover Delay",
+      "description": "How long the pointer must rest on a symbol, in milliseconds, before its providers are asked about it. Higher values ask less often while the pointer is travelling.",
+      "type": "integer",
+      "minimum": 0,
+      "default": 100
+    }
+  },
+  "consumedServices": {
+    "hyperclick.provider": {
+      "description": "Turns a word in the editor into something clickable.",
+      "versions": {
+        "^1.0.0": "consumeHyperclick"
+      }
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-n": "^18.2.2",
+    "globals": "^17.9.0",
+    "prettier": "^3.9.6"
+  }
+}
