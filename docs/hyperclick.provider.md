@@ -79,7 +79,7 @@ module.exports = {
         if (!target) return;
         return {
           range,
-          callback: () => atom.workspace.open(target.path, { initialLine: target.row }),
+          callback: () => lumine.workspace.open(target.path, { initialLine: target.row }),
         };
       },
     };

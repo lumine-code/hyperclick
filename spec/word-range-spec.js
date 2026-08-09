@@ -1,4 +1,4 @@
-const { Point } = require("atom");
+const { Point } = require("lumine");
 
 const { wordRangeAt } = require("../lib/word-range");
 const { it, beforeEach } = require("./async-spec-helpers");
@@ -7,7 +7,7 @@ describe("wordRangeAt", () => {
   let editor;
 
   beforeEach(async () => {
-    editor = await atom.workspace.open();
+    editor = await lumine.workspace.open();
   });
 
   function textAt(row, column) {
@@ -60,7 +60,7 @@ describe("wordRangeAt", () => {
     expect(textAt(0, 5)).toBe("bar");
 
     // Per-grammar word boundaries live under `language.*`, not `editor.*`.
-    atom.config.set("language.nonWordCharacters", "()[]{}");
+    lumine.config.set("language.nonWordCharacters", "()[]{}");
     expect(textAt(0, 1)).toBe("foo-bar");
     expect(textAt(0, 5)).toBe("foo-bar");
   });

@@ -19,7 +19,7 @@ To install `hyperclick` search for _hyperclick_ in the Install pane of the Lumin
 
 ## Commands
 
-Commands available in `atom-text-editor:not([mini])`:
+Commands available in `lumine-text-editor:not([mini])`:
 
 - `hyperclick:confirm-cursor`: follow the symbol under the cursor.
 
@@ -38,7 +38,7 @@ What a click does is up to whichever provider answered. With the bundled package
 Restyle the affordance by adding CSS to your `styles.css`. For example, to draw a thicker, dashed underline:
 
 ```css
-atom-text-editor .highlights .hyperclick .region {
+lumine-text-editor .highlights .hyperclick .region {
   border-bottom: 2px dashed var(--text-color-warning);
 }
 ```

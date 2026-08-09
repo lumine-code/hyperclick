@@ -1,4 +1,4 @@
-const { Point, Range } = require("atom");
+const { Point, Range } = require("lumine");
 
 const { it, beforeEach, afterEach, conditionPromise } = require("./async-spec-helpers");
 
@@ -6,7 +6,7 @@ const { it, beforeEach, afterEach, conditionPromise } = require("./async-spec-he
 // component bails out of updating and nothing ever renders. Build the editor
 // standalone, give its element a size, and attach it.
 function attachEditor(editor) {
-  const element = atom.views.getView(editor);
+  const element = lumine.views.getView(editor);
   element.style.height = "300px";
   element.style.width = "600px";
   jasmine.attachToDOM(element);
@@ -17,7 +17,7 @@ function attachEditor(editor) {
 // The pixel coordinates of a buffer position, so a synthesized mouse event
 // lands where the test means it to.
 function clientPositionFor(editor, position) {
-  const component = atom.views.getView(editor).getComponent();
+  const component = lumine.views.getView(editor).getComponent();
   const screenPosition = editor.screenPositionForBufferPosition(position);
   const { left, top } = component.pixelPositionForScreenPosition(screenPosition);
   const linesRect = component.refs.lineTiles.getBoundingClientRect();
@@ -48,13 +48,13 @@ describe("hyperclick", () => {
     jasmine.unspy(Date, "now");
     jasmine.unspy(global, "setTimeout");
 
-    atom.config.set("hyperclick.hoverDelay", 0);
-    atom.config.set("hyperclick.modifier", "alt");
+    lumine.config.set("hyperclick.hoverDelay", 0);
+    lumine.config.set("hyperclick.modifier", "alt");
 
-    const pack = await atom.packages.activatePackage("hyperclick");
+    const pack = await lumine.packages.activatePackage("hyperclick");
     mainModule = pack.mainModule;
 
-    editor = await atom.workspace.open();
+    editor = await lumine.workspace.open();
     editor.setText("alpha beta\ngamma delta\n");
     element = attachEditor(editor);
 
@@ -70,7 +70,7 @@ describe("hyperclick", () => {
   });
 
   afterEach(async () => {
-    await atom.packages.deactivatePackage("hyperclick");
+    await lumine.packages.deactivatePackage("hyperclick");
   });
 
   function register(aProvider = provider) {
@@ -82,8 +82,8 @@ describe("hyperclick", () => {
       // `observeTextEditors` calls back synchronously for every open editor,
       // so activating with one on screen exercises the ordering inside
       // `activate` that a fresh-workspace activation never reaches.
-      await atom.packages.deactivatePackage("hyperclick");
-      const pack = await atom.packages.activatePackage("hyperclick");
+      await lumine.packages.deactivatePackage("hyperclick");
+      const pack = await lumine.packages.activatePackage("hyperclick");
 
       expect(pack.mainActivated).toBe(true);
       expect(pack.mainModule.editors.has(editor)).toBe(true);
@@ -208,7 +208,7 @@ describe("hyperclick", () => {
     it("follows the symbol under the cursor", async () => {
       register();
       editor.setCursorBufferPosition([0, 2]);
-      atom.commands.dispatch(element, "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
       await conditionPromise(() => calls.length === 1);
       expect(calls).toEqual(["alpha"]);
     });
@@ -216,7 +216,7 @@ describe("hyperclick", () => {
     it("does nothing when no provider claims the word", async () => {
       register();
       editor.setCursorBufferPosition([1, 2]);
-      atom.commands.dispatch(element, "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
       await new Promise((resolve) => setTimeout(resolve, 50));
       expect(calls).toEqual([]);
     });
@@ -244,7 +244,7 @@ describe("hyperclick", () => {
       register(high);
 
       editor.setCursorBufferPosition([1, 2]);
-      atom.commands.dispatch(element, "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
       await conditionPromise(() => calls.length === 1);
       expect(calls).toEqual(["high"]);
     });
@@ -259,7 +259,7 @@ describe("hyperclick", () => {
       register();
 
       editor.setCursorBufferPosition([0, 2]);
-      atom.commands.dispatch(element, "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
       await conditionPromise(() => calls.length === 1);
       expect(calls).toEqual(["alpha"]);
     });
@@ -277,7 +277,7 @@ describe("hyperclick", () => {
       register();
 
       editor.setCursorBufferPosition([0, 2]);
-      atom.commands.dispatch(element, "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
       await conditionPromise(() => calls.length === 1);
       expect(console.error).toHaveBeenCalled();
     });
@@ -287,7 +287,7 @@ describe("hyperclick", () => {
       disposable.dispose();
 
       editor.setCursorBufferPosition([0, 2]);
-      atom.commands.dispatch(element, "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
       await new Promise((resolve) => setTimeout(resolve, 50));
       expect(calls).toEqual([]);
     });
@@ -298,14 +298,14 @@ describe("hyperclick", () => {
         provider,
       ]);
       editor.setCursorBufferPosition([0, 2]);
-      atom.commands.dispatch(element, "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
       await conditionPromise(() => calls.length === 1);
     });
 
     it("skips a provider whose disableForSelector matches the scope", async () => {
-      await atom.packages.activatePackage("language-javascript");
-      const jsEditor = await atom.workspace.open("sample.js");
-      jsEditor.setGrammar(atom.grammars.grammarForScopeName("source.js"));
+      await lumine.packages.activatePackage("language-javascript");
+      const jsEditor = await lumine.workspace.open("sample.js");
+      jsEditor.setGrammar(lumine.grammars.grammarForScopeName("source.js"));
       jsEditor.setText("// alpha beta\n");
       const languageMode = jsEditor.getBuffer().getLanguageMode();
       if (languageMode.ready) await languageMode.ready;
@@ -323,7 +323,7 @@ describe("hyperclick", () => {
       register(commentProvider);
 
       jsEditor.setCursorBufferPosition([0, 4]);
-      atom.commands.dispatch(atom.views.getView(jsEditor), "hyperclick:confirm-cursor");
+      lumine.commands.dispatch(lumine.views.getView(jsEditor), "hyperclick:confirm-cursor");
       await new Promise((resolve) => setTimeout(resolve, 50));
       expect(calls).toEqual([]);
     });
