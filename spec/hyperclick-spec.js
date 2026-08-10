@@ -20,11 +20,26 @@ function attachEditor(editor) {
 // editor, a lookup that produced a suggestion, a marker for it, and a component
 // that renders the marker. A bare "timed out" is consistent with all four
 // failing and they want different fixes, so name which one did.
+//
+// The runner has already reported `watched true` with `suggestion false` on a
+// loaded Linux and Windows runner, which narrows it to the lookup. The three
+// remaining shapes are told apart here: `registry 0` means the provider was
+// registered on a module the live controller is not using, `pending` non-null
+// means a lookup started and never came back, and both empty means the pointer
+// never reached one.
 function renderState(element, mainModule, editor) {
   const component = element.getComponent();
+  const controller = mainModule.editors.get(editor);
   return (
     `watched ${mainModule.editors.has(editor)}, ` +
-    `suggestion ${Boolean(mainModule.editors.get(editor)?.suggestion)}, ` +
+    `suggestion ${Boolean(controller?.suggestion)}, ` +
+    `registry ${controller?.registry?.size}, ` +
+    `sameRegistry ${controller?.registry === mainModule.registry}, ` +
+    `pending ${controller?.pendingRange?.toString() ?? "null"}, ` +
+    `inFlight ${Boolean(controller?.controller)}, ` +
+    `timer ${Boolean(controller?.hoverTimer)}, ` +
+    `hoverDelay ${lumine.config.get("hyperclick.hoverDelay")}, ` +
+    `modifier ${lumine.config.get("hyperclick.modifier")}, ` +
     `visible ${component.visible}, measured ${component.hasInitialMeasurements}, ` +
     `rows ${component.getRenderedStartRow()}-${component.getRenderedEndRow()}, ` +
     `regions ${regionCount(element)}, class ${element.classList.contains("hyperclick")}`
