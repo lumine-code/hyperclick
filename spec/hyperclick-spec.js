@@ -27,10 +27,12 @@ function attachEditor(editor) {
 // registered on a module the live controller is not using, `pending` non-null
 // means a lookup started and never came back, and both empty means the pointer
 // never reached one.
-function renderState(element, mainModule, editor) {
+function renderState(element, mainModule, editor, asked) {
   const component = element.getComponent();
   const controller = mainModule.editors.get(editor);
   return (
+    `asked ${JSON.stringify(asked)}, ` +
+    `line ${JSON.stringify(editor.lineTextForBufferRow(0))}, ` +
     `watched ${mainModule.editors.has(editor)}, ` +
     `suggestion ${Boolean(controller?.suggestion)}, ` +
     `registry ${controller?.registry?.size}, ` +
@@ -86,7 +88,7 @@ function regionCount(element) {
 }
 
 describe("hyperclick", () => {
-  let editor, element, mainModule, provider, calls;
+  let editor, element, mainModule, provider, calls, asked;
 
   beforeEach(async () => {
     jasmine.unspy(Date, "now");
@@ -103,10 +105,15 @@ describe("hyperclick", () => {
     element = attachEditor(editor);
 
     calls = [];
+    // Every word the provider was asked about. The stub declines anything but
+    // `alpha`, so when an affordance never appears this says whether the
+    // pointer resolved to the wrong word or never produced a lookup at all.
+    asked = [];
     provider = {
       priority: 1,
       providerName: "stub",
       getSuggestionForWord(anEditor, text, range) {
+        asked.push(text);
         if (text !== "alpha") return;
         return { range, callback: () => calls.push(text) };
       },
@@ -153,7 +160,7 @@ describe("hyperclick", () => {
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
-        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+        () => `an underlined region (${renderState(element, mainModule, editor, asked)})`,
       );
       expect(element.classList.contains("hyperclick")).toBe(true);
     });
@@ -183,7 +190,7 @@ describe("hyperclick", () => {
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
-        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+        () => `an underlined region (${renderState(element, mainModule, editor, asked)})`,
       );
 
       window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, altKey: false }));
@@ -213,7 +220,7 @@ describe("hyperclick", () => {
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
-        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+        () => `an underlined region (${renderState(element, mainModule, editor, asked)})`,
       );
 
       const event = mouseEvent("mousedown", editor, [0, 2], { altKey: true });
@@ -249,7 +256,7 @@ describe("hyperclick", () => {
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
-        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+        () => `an underlined region (${renderState(element, mainModule, editor, asked)})`,
       );
 
       const event = mouseEvent("mousedown", editor, [0, 2]);
@@ -405,7 +412,7 @@ describe("hyperclick", () => {
           element.getComponent().updateSync();
           return regionCount(element) >= 2;
         },
-        () => `two underlined regions (${renderState(element, mainModule, editor)})`,
+        () => `two underlined regions (${renderState(element, mainModule, editor, asked)})`,
       );
       expect(regionCount(element)).toBe(2);
     });
