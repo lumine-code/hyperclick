@@ -1,6 +1,6 @@
 const { Point, Range } = require("lumine");
 
-const { it, beforeEach, afterEach, conditionPromise } = require("./async-spec-helpers");
+const { conditionPromise } = require("./async-spec-helpers");
 
 // A workspace-hosted editor in a headless spec believes it is invisible, so the
 // component bails out of updating and nothing ever renders. Build the editor
@@ -21,10 +21,22 @@ function clientPositionFor(editor, position) {
   const screenPosition = editor.screenPositionForBufferPosition(position);
   const { left, top } = component.pixelPositionForScreenPosition(screenPosition);
   const linesRect = component.refs.lineTiles.getBoundingClientRect();
-  return {
+  const clientPosition = {
     clientX: linesRect.left + left + 1,
     clientY: linesRect.top + top + component.getLineHeight() / 2,
   };
+
+  // The point is only meaningful if the editor maps it back to the position it
+  // was built from. When measurement is off -- an unrendered line, a font that
+  // resolved late -- it does not, and every expectation downstream fails as a
+  // timeout that never mentions the pointer. Say so here instead.
+  const landed = component.screenPositionForMouseEvent(clientPosition);
+  expect(`${landed.row},${landed.column}`).toBe(
+    `${screenPosition.row},${screenPosition.column}`,
+    `synthesized pointer for ${position} landed elsewhere`,
+  );
+
+  return clientPosition;
 }
 
 function mouseEvent(name, editor, position, options = {}) {

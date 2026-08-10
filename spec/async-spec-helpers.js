@@ -1,69 +1,39 @@
-function beforeEach(fn) {
-  global.beforeEach(function () {
-    const result = fn();
-    if (result instanceof Promise) {
-      waitsForPromise(() => result);
-    }
-  });
-}
+// The editor's jasmine runner awaits a promise an `it`, `beforeEach` or
+// `afterEach` returns, so nothing here has to wrap them. It used to, through a
+// `waitsForPromise` that reported a rejection with
+// `jasmine.getEnv().currentSpec.fail(error)` -- an API jasmine 6 does not have.
+// A rejected spec promise therefore threw a TypeError inside the rejection
+// handler and the real error was replaced by a bare "Timed out waiting for spec
+// promise to resolve", which is how a CI failure here read for a while.
 
-function afterEach(fn) {
-  global.afterEach(function () {
-    const result = fn();
-    if (result instanceof Promise) {
-      waitsForPromise(() => result);
-    }
-  });
-}
-
-["it", "fit", "ffit", "fffit"].forEach(function (name) {
-  module.exports[name] = function (description, fn) {
-    global[name](description, function () {
-      const result = fn();
-      if (result instanceof Promise) {
-        waitsForPromise(() => result);
-      }
-    });
-  };
-});
-
-async function conditionPromise(condition) {
+// Poll until `condition` holds. The ceiling matches the editor's own helper: a
+// loaded CI runner -- the Windows one especially -- settles event-driven state
+// markedly slower than a developer's machine, and a spec that gives up early
+// there reports a timeout in place of whatever actually went wrong.
+async function conditionPromise(
+  condition,
+  description = "anonymous condition",
+  timeout = process.env.CI ? 30000 : 5000,
+) {
   const startTime = Date.now();
 
   while (true) {
     await timeoutPromise(100);
 
-    let conditionResult = condition();
-    if (conditionResult instanceof Promise) {
-      conditionResult = await conditionResult;
-    }
+    let result = condition();
+    if (result instanceof Promise) result = await result;
+    if (result) return;
 
-    if (conditionResult) {
-      return;
-    }
-
-    if (Date.now() - startTime > 5000) {
-      throw new Error("Timed out waiting on condition");
+    if (Date.now() - startTime > timeout) {
+      throw new Error(`Timed out waiting on ${description}`);
     }
   }
 }
 
 function timeoutPromise(timeout) {
-  return new Promise(function (resolve) {
+  return new Promise((resolve) => {
     global.setTimeout(resolve, timeout);
   });
 }
 
-function waitsForPromise(fn) {
-  const promise = fn();
-  global.waitsFor("spec promise to resolve", function (done) {
-    promise.then(done, function (error) {
-      jasmine.getEnv().currentSpec.fail(error);
-      done();
-    });
-  });
-}
-
-// Merge rather than assign: the forEach above already hung it/fit/ffit/fffit
-// onto module.exports.
-Object.assign(module.exports, { beforeEach, afterEach, conditionPromise, timeoutPromise });
+module.exports = { conditionPromise, timeoutPromise };

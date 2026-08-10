@@ -1,7 +1,6 @@
 const { Point } = require("lumine");
 
 const { wordRangeAt } = require("../lib/word-range");
-const { it, beforeEach } = require("./async-spec-helpers");
 
 describe("wordRangeAt", () => {
   let editor;
