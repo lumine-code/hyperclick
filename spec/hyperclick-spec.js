@@ -49,21 +49,29 @@ function renderState(element, mainModule, editor, asked) {
 }
 
 // The pixel coordinates of a buffer position, so a synthesized mouse event
-// lands where the test means it to.
-function clientPositionFor(editor, position) {
+// lands where the test means it to. Computed fresh on every call: the editor
+// may still be settling its measurements, and a point cached from before a
+// settle aims at a different word afterwards.
+function rawClientPositionFor(editor, position) {
   const component = lumine.views.getView(editor).getComponent();
   const screenPosition = editor.screenPositionForBufferPosition(position);
   const { left, top } = component.pixelPositionForScreenPosition(screenPosition);
   const linesRect = component.refs.lineTiles.getBoundingClientRect();
-  const clientPosition = {
+  return {
     clientX: linesRect.left + left + 1,
     clientY: linesRect.top + top + component.getLineHeight() / 2,
   };
+}
+
+function clientPositionFor(editor, position) {
+  const clientPosition = rawClientPositionFor(editor, position);
 
   // The point is only meaningful if the editor maps it back to the position it
   // was built from. When measurement is off -- an unrendered line, a font that
   // resolved late -- it does not, and every expectation downstream fails as a
   // timeout that never mentions the pointer. Say so here instead.
+  const component = lumine.views.getView(editor).getComponent();
+  const screenPosition = editor.screenPositionForBufferPosition(position);
   const landed = component.screenPositionForMouseEvent(clientPosition);
   expect(`${landed.row},${landed.column}`).toBe(
     `${screenPosition.row},${screenPosition.column}`,
@@ -81,6 +89,37 @@ function mouseEvent(name, editor, position, options = {}) {
     ...clientPositionFor(editor, position),
     ...options,
   });
+}
+
+// A pointer resting on a word, rather than one mousemove and then nothing.
+//
+// The affordance is torn down by `clear()`, which is wired to a good half dozen
+// signals that have nothing to do with the pointer -- the window losing focus,
+// a stray key event without the modifier, a cursor move, the editor settling
+// its scroll position. A single synthesized move has to survive all of them for
+// the whole wait, and on a loaded runner one of them reliably lands: the run
+// that pinned this down reported the provider asked exactly once, with exactly
+// the right word, and every trace of the answer then scrubbed -- the shape only
+// a clear() can leave. A real hover re-establishes the affordance on the next
+// pointer move, hundreds of times a second, so send the move on every poll and
+// the spec depends on hyperclick answering a hover rather than on the runner
+// staying quiet. A genuine regression still fails: when no provider claims the
+// word, no number of moves paints a region.
+//
+// The round trip is asserted once up front; re-asserting on every poll would
+// bury a real failure under three hundred passing expectations.
+function hoverAt(element, editor, position, options = { altKey: true }) {
+  clientPositionFor(editor, position);
+  return () =>
+    element.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        ...rawClientPositionFor(editor, position),
+        ...options,
+      }),
+    );
 }
 
 function regionCount(element) {
@@ -154,9 +193,10 @@ describe("hyperclick", () => {
   describe("when the pointer moves with the modifier held", () => {
     it("underlines a word a provider claims", async () => {
       register();
-      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const hover = hoverAt(element, editor, [0, 2]);
       await conditionPromise(
         () => {
+          hover();
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
@@ -184,9 +224,10 @@ describe("hyperclick", () => {
 
     it("clears the affordance when the modifier is released", async () => {
       register();
-      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const hover = hoverAt(element, editor, [0, 2]);
       await conditionPromise(
         () => {
+          hover();
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
@@ -214,9 +255,10 @@ describe("hyperclick", () => {
     it("runs the callback and does not move the cursor", async () => {
       register();
       editor.setCursorBufferPosition([1, 0]);
-      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const hover = hoverAt(element, editor, [0, 2]);
       await conditionPromise(
         () => {
+          hover();
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
@@ -250,9 +292,10 @@ describe("hyperclick", () => {
 
     it("ignores a click without the modifier", async () => {
       register();
-      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const hover = hoverAt(element, editor, [0, 2]);
       await conditionPromise(
         () => {
+          hover();
           element.getComponent().updateSync();
           return regionCount(element) > 0;
         },
@@ -406,9 +449,10 @@ describe("hyperclick", () => {
         }),
       });
 
-      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const hover = hoverAt(element, editor, [0, 2]);
       await conditionPromise(
         () => {
+          hover();
           element.getComponent().updateSync();
           return regionCount(element) >= 2;
         },
