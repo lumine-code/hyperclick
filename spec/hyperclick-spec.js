@@ -1,6 +1,5 @@
 const { Point, Range } = require("lumine");
 
-
 // A workspace-hosted editor in a headless spec believes it is invisible, so the
 // component bails out of updating and nothing ever renders. Build the editor
 // standalone, give its element a size, and attach it.
