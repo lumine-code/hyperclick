@@ -14,6 +14,23 @@ function attachEditor(editor) {
   return element;
 }
 
+// What the editor and the controller believed at the moment a wait gave up.
+//
+// The affordance needs four things to line up: a controller watching this
+// editor, a lookup that produced a suggestion, a marker for it, and a component
+// that renders the marker. A bare "timed out" is consistent with all four
+// failing and they want different fixes, so name which one did.
+function renderState(element, mainModule, editor) {
+  const component = element.getComponent();
+  return (
+    `watched ${mainModule.editors.has(editor)}, ` +
+    `suggestion ${Boolean(mainModule.editors.get(editor)?.suggestion)}, ` +
+    `visible ${component.visible}, measured ${component.hasInitialMeasurements}, ` +
+    `rows ${component.getRenderedStartRow()}-${component.getRenderedEndRow()}, ` +
+    `regions ${regionCount(element)}, class ${element.classList.contains("hyperclick")}`
+  );
+}
+
 // The pixel coordinates of a buffer position, so a synthesized mouse event
 // lands where the test means it to.
 function clientPositionFor(editor, position) {
@@ -116,10 +133,13 @@ describe("hyperclick", () => {
     it("underlines a word a provider claims", async () => {
       register();
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
-      await conditionPromise(() => {
-        element.getComponent().updateSync();
-        return regionCount(element) > 0;
-      });
+      await conditionPromise(
+        () => {
+          element.getComponent().updateSync();
+          return regionCount(element) > 0;
+        },
+        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+      );
       expect(element.classList.contains("hyperclick")).toBe(true);
     });
 
@@ -143,10 +163,13 @@ describe("hyperclick", () => {
     it("clears the affordance when the modifier is released", async () => {
       register();
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
-      await conditionPromise(() => {
-        element.getComponent().updateSync();
-        return regionCount(element) > 0;
-      });
+      await conditionPromise(
+        () => {
+          element.getComponent().updateSync();
+          return regionCount(element) > 0;
+        },
+        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+      );
 
       window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, altKey: false }));
       element.getComponent().updateSync();
@@ -170,10 +193,13 @@ describe("hyperclick", () => {
       register();
       editor.setCursorBufferPosition([1, 0]);
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
-      await conditionPromise(() => {
-        element.getComponent().updateSync();
-        return regionCount(element) > 0;
-      });
+      await conditionPromise(
+        () => {
+          element.getComponent().updateSync();
+          return regionCount(element) > 0;
+        },
+        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+      );
 
       const event = mouseEvent("mousedown", editor, [0, 2], { altKey: true });
       element.dispatchEvent(event);
@@ -203,10 +229,13 @@ describe("hyperclick", () => {
     it("ignores a click without the modifier", async () => {
       register();
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
-      await conditionPromise(() => {
-        element.getComponent().updateSync();
-        return regionCount(element) > 0;
-      });
+      await conditionPromise(
+        () => {
+          element.getComponent().updateSync();
+          return regionCount(element) > 0;
+        },
+        () => `an underlined region (${renderState(element, mainModule, editor)})`,
+      );
 
       const event = mouseEvent("mousedown", editor, [0, 2]);
       element.dispatchEvent(event);
@@ -356,10 +385,13 @@ describe("hyperclick", () => {
       });
 
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
-      await conditionPromise(() => {
-        element.getComponent().updateSync();
-        return regionCount(element) >= 2;
-      });
+      await conditionPromise(
+        () => {
+          element.getComponent().updateSync();
+          return regionCount(element) >= 2;
+        },
+        () => `two underlined regions (${renderState(element, mainModule, editor)})`,
+      );
       expect(regionCount(element)).toBe(2);
     });
   });
