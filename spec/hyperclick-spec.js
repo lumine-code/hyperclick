@@ -1,6 +1,5 @@
 const { Point, Range } = require("lumine");
 
-const { conditionPromise } = require("./async-spec-helpers");
 
 // A workspace-hosted editor in a headless spec believes it is invisible, so the
 // component bails out of updating and nothing ever renders. Build the editor
@@ -241,13 +240,13 @@ describe("hyperclick", () => {
     });
 
     it("asks a provider once while the pointer stays inside one word", async () => {
-      spyOn(provider, "getSuggestionForWord").andCallThrough();
+      spyOn(provider, "getSuggestionForWord").and.callThrough();
       register();
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 1], { altKey: true }));
-      await conditionPromise(() => provider.getSuggestionForWord.callCount === 1);
+      await conditionPromise(() => provider.getSuggestionForWord.calls.count() === 1);
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 3], { altKey: true }));
       await new Promise((resolve) => setTimeout(resolve, 50));
-      expect(provider.getSuggestionForWord.callCount).toBe(1);
+      expect(provider.getSuggestionForWord.calls.count()).toBe(1);
     });
   });
 
