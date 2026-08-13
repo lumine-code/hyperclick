@@ -186,6 +186,29 @@ describe("hyperclick", () => {
       editor.destroy();
       expect(mainModule.editors.has(editor)).toBe(false);
     });
+
+    it("watches registered embedded editors, but not background or mini ones", () => {
+      // A notebook cell is a registered fragment, not a pane item — hyperclick
+      // works there. The hidden JSON projection is a background editor and
+      // never takes the pointer; minis were always excluded.
+      const fragment = lumine.workspace.buildTextEditor();
+      const fragmentRegistration = lumine.textEditors.add(fragment, { role: "fragment" });
+      const background = lumine.workspace.buildTextEditor();
+      const backgroundRegistration = lumine.textEditors.add(background, { role: "background" });
+      const mini = lumine.workspace.buildTextEditor({ mini: true });
+      const miniRegistration = lumine.textEditors.add(mini);
+
+      expect(mainModule.editors.has(fragment)).toBe(true);
+      expect(mainModule.editors.has(background)).toBe(false);
+      expect(mainModule.editors.has(mini)).toBe(false);
+
+      fragmentRegistration.dispose();
+      backgroundRegistration.dispose();
+      miniRegistration.dispose();
+      fragment.destroy();
+      background.destroy();
+      mini.destroy();
+    });
   });
 
   describe("when the pointer moves with the modifier held", () => {
