@@ -15,7 +15,7 @@ Hold the modifier key and symbols become links: the one under the pointer is und
 
 ## Installation
 
-To install `hyperclick` search for _hyperclick_ in the Install pane of the Lumine settings or run `lumine --install lumine-code/hyperclick`.
+To install `hyperclick` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/hyperclick`.
 
 ## Commands
 
@@ -31,7 +31,7 @@ What a click does is up to whichever provider answered. With the bundled package
 
 ## Services
 
-- **[hyperclick.provider](docs/hyperclick.provider.md)** (`^1.0.0`): consumed to let packages turn the words they understand into links.
+- [`hyperclick.provider`](docs/hyperclick.provider.md): consumed to let packages turn the words they understand into links.
 
 ## Customization
 
