@@ -56,7 +56,7 @@ describe("hyperclick package assets", () => {
   });
 
   it("scopes its stylesheet to a highlight decoration, not a text decoration", () => {
-    const css = read("styles/hyperclick.css");
+    const css = read("styles/main.css");
     expect(css).toContain(".highlights .hyperclick .region");
     expect(css).toContain("var(--");
   });
