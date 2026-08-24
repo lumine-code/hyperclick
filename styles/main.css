@@ -4,7 +4,7 @@
  * whatever else marks the same range. A highlight region is its own box and
  * composes with anything. */
 lumine-text-editor .highlights .hyperclick .region {
-  border-bottom: 1px solid var(--text-color-info);
+  border-bottom: 1px solid var(--accent-color);
   pointer-events: none;
 }
 
