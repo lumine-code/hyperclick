@@ -59,7 +59,7 @@ describe("wordRangeAt", () => {
     expect(textAt(0, 5)).toBe("bar");
 
     // Per-grammar word boundaries live under `language.*`, not `editor.*`.
-    lumine.config.set("language.nonWordCharacters", "()[]{}");
+    lumine.config.set("editor.nonWordCharacters", "()[]{}");
     expect(textAt(0, 1)).toBe("foo-bar");
     expect(textAt(0, 5)).toBe("foo-bar");
   });
