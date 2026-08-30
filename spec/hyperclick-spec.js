@@ -211,6 +211,71 @@ describe("hyperclick", () => {
     });
   });
 
+  describe("window surfaces", () => {
+    it("moves modifier and blur listeners with a detached editor", async () => {
+      const controller = mainModule.editors.get(editor);
+      spyOn(controller, "clear").and.callThrough();
+      const frame = document.createElement("iframe");
+      document.body.appendChild(frame);
+
+      const surfaceFor = (document_, id, kind) => ({
+        id,
+        kind,
+        window: document_.defaultView,
+        document: document_,
+        element: document_.body,
+      });
+      const moveTo = async (targetDocument, reason) => {
+        const sourceDocument = element.ownerDocument;
+        const transition = await lumine.workspace.windowSurfaceTransitions.begin({
+          item: editor,
+          from: surfaceFor(
+            sourceDocument,
+            sourceDocument === document ? "primary" : "detached",
+            sourceDocument === document ? "primary" : "detached-pane",
+          ),
+          to: surfaceFor(
+            targetDocument,
+            targetDocument === document ? "primary" : "detached",
+            targetDocument === document ? "primary" : "detached-pane",
+          ),
+          reason,
+        });
+        targetDocument.adoptNode(element);
+        targetDocument.body.appendChild(element);
+        await transition.commit();
+        transition.complete();
+      };
+
+      await moveTo(frame.contentDocument, "detach");
+
+      try {
+        controller.clear.calls.reset();
+        frame.contentWindow.dispatchEvent(
+          new frame.contentWindow.KeyboardEvent("keyup", { bubbles: true, altKey: false }),
+        );
+        expect(controller.clear.calls.count()).toBe(1);
+
+        controller.clear.calls.reset();
+        frame.contentWindow.dispatchEvent(new frame.contentWindow.FocusEvent("blur"));
+        expect(controller.clear.calls.count()).toBe(1);
+
+        controller.clear.calls.reset();
+        window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, altKey: false }));
+        expect(controller.clear).not.toHaveBeenCalled();
+
+        await moveTo(document, "attach");
+        controller.clear.calls.reset();
+        window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, altKey: false }));
+        expect(controller.clear.calls.count()).toBe(1);
+      } finally {
+        if (element.ownerDocument !== document) await moveTo(document, "attach");
+        jasmine.attachToDOM(element);
+        frame.remove();
+      }
+    });
+  });
+
   describe("when the pointer moves with the modifier held", () => {
     it("underlines a word a provider claims", async () => {
       register();
