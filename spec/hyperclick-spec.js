@@ -187,26 +187,30 @@ describe("hyperclick", () => {
       expect(mainModule.editors.has(editor)).toBe(false);
     });
 
-    it("watches registered embedded editors, but not background or mini ones", () => {
-      // A notebook cell is a registered fragment, not a pane item — hyperclick
-      // works there. The hidden JSON projection is a background editor and
-      // never takes the pointer; minis were always excluded.
+    it("watches registered surfaces, but not hidden or mini input editors", () => {
+      // A notebook cell and a read-only viewer are registered surfaces, not
+      // pane items, so hyperclick works there. An unregistered model has no
+      // surface, while mini input fields remain excluded.
       const fragment = lumine.workspace.buildTextEditor();
       const fragmentRegistration = lumine.textEditors.add(fragment, { role: "fragment" });
-      const background = lumine.workspace.buildTextEditor();
-      const backgroundRegistration = lumine.textEditors.add(background, { role: "background" });
+      const viewer = lumine.workspace.buildTextEditor();
+      const viewerRegistration = lumine.textEditors.add(viewer, { role: "viewer" });
+      const hidden = lumine.workspace.buildTextEditor();
       const mini = lumine.workspace.buildTextEditor({ mini: true });
-      const miniRegistration = lumine.textEditors.add(mini);
+      const miniRegistration = lumine.textEditors.add(mini, { role: "input" });
 
       expect(mainModule.editors.has(fragment)).toBe(true);
-      expect(mainModule.editors.has(background)).toBe(false);
+      expect(mainModule.editors.has(viewer)).toBe(true);
+      expect(mainModule.editors.has(hidden)).toBe(false);
       expect(mainModule.editors.has(mini)).toBe(false);
 
+      viewerRegistration.dispose();
+      expect(mainModule.editors.has(viewer)).toBe(false);
       fragmentRegistration.dispose();
-      backgroundRegistration.dispose();
       miniRegistration.dispose();
       fragment.destroy();
-      background.destroy();
+      viewer.destroy();
+      hidden.destroy();
       mini.destroy();
     });
   });
