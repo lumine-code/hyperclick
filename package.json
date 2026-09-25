@@ -26,9 +26,6 @@
     "lumine": "^1.0.0",
     "node": ">=24"
   },
-  "backgroundTips": [
-    "{% if keys['hyperclick:confirm-cursor'] %}You can follow the symbol under the cursor to its definition with {{ 'hyperclick:confirm-cursor' | keystroke }}{% else %}You can hold Alt and click a symbol to jump to its definition.{% endif %}"
-  ],
   "scripts": {
     "test": "lumine --test spec",
     "lint": "eslint . --max-warnings 0",
@@ -58,6 +55,13 @@
       "type": "integer",
       "minimum": 0,
       "default": 100
+    }
+  },
+  "providedServices": {
+    "background-tips.provider": {
+      "versions": {
+        "1.0.0": "provideBackgroundTips"
+      }
     }
   },
   "consumedServices": {

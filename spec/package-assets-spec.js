@@ -15,12 +15,14 @@ describe("hyperclick package assets", () => {
     expect(pkg.main).toBe("./lib/main");
   });
 
-  it("consumes hyperclick.provider and provides nothing", () => {
+  it("consumes hyperclick.provider and provides background tips", () => {
     const pkg = JSON.parse(read("package.json"));
     expect(pkg.consumedServices["hyperclick.provider"].versions["^1.0.0"]).toBe(
       "consumeHyperclick",
     );
-    expect(pkg.providedServices).toBeUndefined();
+    expect(pkg.providedServices["background-tips.provider"].versions["1.0.0"]).toBe(
+      "provideBackgroundTips",
+    );
   });
 
   it("owns the contract document for the service it consumes", () => {
@@ -47,12 +49,11 @@ describe("hyperclick package assets", () => {
     expect(schema.modifier.default).toBe("alt");
   });
 
-  it("ships background tips right after engines", () => {
-    const pkg = JSON.parse(read("package.json"));
-    const keys = Object.keys(pkg);
-    expect(keys[keys.indexOf("engines") + 1]).toBe("backgroundTips");
-    expect(pkg.backgroundTips.length).toBeGreaterThan(0);
-    expect(pkg.backgroundTips.length).toBeLessThan(4);
+  it("provides one to three background tips", () => {
+    const contribution = require("../lib/main").provideBackgroundTips();
+    expect(contribution.packageName).toBe("hyperclick");
+    expect(contribution.tips.length).toBeGreaterThan(0);
+    expect(contribution.tips.length).toBeLessThan(4);
   });
 
   it("scopes its stylesheet to a highlight decoration, not a text decoration", () => {
