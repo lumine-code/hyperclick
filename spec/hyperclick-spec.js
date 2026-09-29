@@ -215,6 +215,128 @@ describe("hyperclick", () => {
     });
   });
 
+  describe("when the modifier changes under a stationary pointer", () => {
+    async function pressModifier(options = { key: "Alt", altKey: true }) {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...options }));
+      await flushMicrotasks();
+      element.getComponent().updateSync();
+    }
+
+    it("shows the link and pointer cursor without another mousemove", async () => {
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+      expect(asked).toEqual([]);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+
+      await pressModifier();
+
+      expect(asked).toEqual(["alpha"]);
+      expect(regionCount(element)).toBe(1);
+      expect(element.classList.contains("hyperclick")).toBe(true);
+      expect(getComputedStyle(element.querySelector(".scroll-view")).cursor).toBe("pointer");
+    });
+
+    it("restores the link when the modifier is released and pressed again", async () => {
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+      await pressModifier();
+
+      window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
+      element.getComponent().updateSync();
+      expect(regionCount(element)).toBe(0);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+      expect(getComputedStyle(element.querySelector(".scroll-view")).cursor).not.toBe("pointer");
+
+      await pressModifier();
+
+      expect(asked).toEqual(["alpha", "alpha"]);
+      expect(regionCount(element)).toBe(1);
+    });
+
+    it("uses the configured Ctrl or Cmd modifier", async () => {
+      lumine.config.set("hyperclick.modifier", "ctrl");
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+      await pressModifier();
+      expect(asked).toEqual([]);
+
+      await pressModifier(
+        process.platform === "darwin"
+          ? { key: "Meta", metaKey: true }
+          : { key: "Control", ctrlKey: true },
+      );
+
+      expect(asked).toEqual(["alpha"]);
+      expect(regionCount(element)).toBe(1);
+    });
+
+    it("leaves an unclaimed word alone", async () => {
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 7]));
+      await pressModifier();
+
+      expect(asked).toEqual(["beta"]);
+      expect(regionCount(element)).toBe(0);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+    });
+
+    it("does nothing before the pointer enters the editor", async () => {
+      register();
+      await pressModifier();
+
+      expect(asked).toEqual([]);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+    });
+
+    for (const eventName of ["mouseleave", "blur"]) {
+      it(`forgets the pointer after ${eventName}`, async () => {
+        register();
+        element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+        const target = eventName === "blur" ? window : element;
+        target.dispatchEvent(new Event(eventName));
+        await pressModifier();
+
+        expect(asked).toEqual([]);
+        expect(element.classList.contains("hyperclick")).toBe(false);
+      });
+    }
+
+    it("keeps the pointer when moving between descendants of the editor", async () => {
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+      element.querySelector(".scroll-view").dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          relatedTarget: element.querySelector(".lines"),
+        }),
+      );
+      await pressModifier();
+
+      expect(asked).toEqual(["alpha"]);
+      expect(regionCount(element)).toBe(1);
+    });
+
+    it("drops a delayed answer if the modifier was released", async () => {
+      let release;
+      provider.getSuggestionForWord = (anEditor, text, range) =>
+        new Promise((resolve) => {
+          release = () => resolve({ range, callback: () => calls.push(text) });
+        });
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+      await pressModifier();
+      expect(typeof release).toBe("function");
+
+      window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
+      release();
+      await flushMicrotasks();
+      element.getComponent().updateSync();
+
+      expect(regionCount(element)).toBe(0);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+    });
+  });
+
   describe("when the pointer moves with the modifier held", () => {
     it("underlines a word a provider claims", async () => {
       register();
