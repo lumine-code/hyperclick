@@ -163,6 +163,14 @@ describe("hyperclick", () => {
     return mainModule.consumeHyperclick(aProvider);
   }
 
+  function dispatchKey(type, options = {}) {
+    // Real key events start at the editor input and pass through document,
+    // where core's keymap handler stops propagation before window bubbling.
+    element
+      .querySelector(".hidden-input")
+      .dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, ...options }));
+  }
+
   describe("activation", () => {
     it("watches editors that were already open", async () => {
       // `observeTextEditors` calls back synchronously for every open editor,
@@ -215,7 +223,7 @@ describe("hyperclick", () => {
 
   describe("when Alt changes under a stationary pointer", () => {
     async function pressModifier(options = { key: "Alt", altKey: true }) {
-      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...options }));
+      dispatchKey("keydown", options);
       await flushMicrotasks();
       element.getComponent().updateSync();
     }
@@ -256,7 +264,7 @@ describe("hyperclick", () => {
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
       await pressModifier();
 
-      window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
+      dispatchKey("keyup", { key: "Alt" });
       element.getComponent().updateSync();
       expect(regionCount(element)).toBe(0);
       expect(element.classList.contains("hyperclick")).toBe(false);
@@ -347,7 +355,7 @@ describe("hyperclick", () => {
         expect(typeof release).toBe("function");
 
         if (cancellation === "Alt release") {
-          window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
+          dispatchKey("keyup", { key: "Alt" });
         } else if (cancellation === "destroy") {
           editor.destroy();
         } else if (cancellation === "deactivate") {
@@ -366,6 +374,75 @@ describe("hyperclick", () => {
         expect(calls).toEqual([]);
       });
     }
+
+    describe("when the document keymap handler stops propagation", () => {
+      let stopAtDocument, bodyObserver, windowObserver;
+
+      beforeEach(() => {
+        stopAtDocument = (event) => event.stopImmediatePropagation();
+        bodyObserver = jasmine.createSpy("body observer");
+        windowObserver = jasmine.createSpy("window bubble observer");
+        for (const type of ["keydown", "keyup"]) {
+          document.addEventListener(type, stopAtDocument);
+          document.body.addEventListener(type, bodyObserver);
+          window.addEventListener(type, windowObserver);
+        }
+      });
+
+      afterEach(() => {
+        for (const type of ["keydown", "keyup"]) {
+          document.removeEventListener(type, stopAtDocument);
+          document.body.removeEventListener(type, bodyObserver);
+          window.removeEventListener(type, windowObserver);
+        }
+      });
+
+      it("updates a stationary link on Alt press, release and repress before keymap handling", async () => {
+        lumine.config.set("hyperclick.hoverDelay", 60000);
+        register();
+        element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+
+        await pressModifier();
+        expect(regionCount(element)).toBe(1);
+        expect(getComputedStyle(element.querySelector(".scroll-view")).cursor).toBe("pointer");
+        dispatchKey("keyup", { key: "Alt" });
+        element.getComponent().updateSync();
+        expect(regionCount(element)).toBe(0);
+        expect(getComputedStyle(element.querySelector(".scroll-view")).cursor).not.toBe("pointer");
+        await pressModifier();
+        expect(regionCount(element)).toBe(1);
+        expect(asked).toEqual(["alpha", "alpha"]);
+
+        await pressModifier({ key: "Control", ctrlKey: true });
+        await pressModifier({ key: "Meta", metaKey: true });
+        expect(regionCount(element)).toBe(0);
+        expect(asked).toEqual(["alpha", "alpha"]);
+        expect(bodyObserver).toHaveBeenCalledTimes(5);
+        expect(windowObserver).not.toHaveBeenCalled();
+      });
+
+      it("cancels a pending answer on Alt release even when keyup cannot reach window bubbling", async () => {
+        let release;
+        provider.getSuggestionForWord = (anEditor, text, range) =>
+          new Promise((resolve) => {
+            release = () => resolve({ range, callback: () => calls.push(text) });
+          });
+        register();
+        element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+        await pressModifier();
+        const request = mainModule.editors.get(editor).controller;
+        dispatchKey("keyup", { key: "Alt" });
+        expect(request.signal.aborted).toBe(true);
+        release();
+        await flushMicrotasks();
+        element.getComponent().updateSync();
+
+        expect(regionCount(element)).toBe(0);
+        expect(element.classList.contains("hyperclick")).toBe(false);
+        expect(bodyObserver).toHaveBeenCalledTimes(2);
+        expect(windowObserver).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe("when the pointer moves with the modifier held", () => {
@@ -473,7 +550,7 @@ describe("hyperclick", () => {
         () => `an underlined region (${renderState(element, mainModule, editor, asked)})`,
       );
 
-      window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, altKey: false }));
+      dispatchKey("keyup", { key: "Alt" });
       element.getComponent().updateSync();
       expect(regionCount(element)).toBe(0);
       expect(element.classList.contains("hyperclick")).toBe(false);
@@ -555,7 +632,7 @@ describe("hyperclick", () => {
       register();
       const event = mouseEvent("mousedown", editor, [0, 2], { altKey: true });
       element.dispatchEvent(event);
-      window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
+      dispatchKey("keyup", { key: "Alt" });
       release();
       await flushMicrotasks();
 
