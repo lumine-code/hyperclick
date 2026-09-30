@@ -39,7 +39,6 @@ function renderState(element, mainModule, editor, asked) {
     `inFlight ${Boolean(controller?.controller)}, ` +
     `timer ${Boolean(controller?.hoverTimer)}, ` +
     `hoverDelay ${lumine.config.get("hyperclick.hoverDelay")}, ` +
-    `modifier ${lumine.config.get("hyperclick.modifier")}, ` +
     `visible ${component.visible}, measured ${component.hasInitialMeasurements}, ` +
     `rows ${component.getRenderedStartRow()}-${component.getRenderedEndRow()}, ` +
     `regions ${regionCount(element)}, class ${element.classList.contains("hyperclick")}`
@@ -132,7 +131,6 @@ describe("hyperclick", () => {
     jasmine.unspy(global, "setTimeout");
 
     lumine.config.set("hyperclick.hoverDelay", 0);
-    lumine.config.set("hyperclick.modifier", "alt");
 
     const pack = await lumine.packages.activatePackage("hyperclick");
     mainModule = pack.mainModule;
@@ -215,7 +213,7 @@ describe("hyperclick", () => {
     });
   });
 
-  describe("when the modifier changes under a stationary pointer", () => {
+  describe("when Alt changes under a stationary pointer", () => {
     async function pressModifier(options = { key: "Alt", altKey: true }) {
       window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...options }));
       await flushMicrotasks();
@@ -223,6 +221,7 @@ describe("hyperclick", () => {
     }
 
     it("shows the link and pointer cursor without another mousemove", async () => {
+      lumine.config.set("hyperclick.hoverDelay", 60000);
       register();
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
       expect(asked).toEqual([]);
@@ -236,7 +235,23 @@ describe("hyperclick", () => {
       expect(getComputedStyle(element.querySelector(".scroll-view")).cursor).toBe("pointer");
     });
 
-    it("restores the link when the modifier is released and pressed again", async () => {
+    it("starts a scheduled mouse hover immediately when Alt is pressed", async () => {
+      lumine.config.set("hyperclick.hoverDelay", 60000);
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const controller = mainModule.editors.get(editor);
+      expect(asked).toEqual([]);
+      expect(controller.hoverTimer).not.toBeNull();
+
+      await pressModifier();
+
+      expect(asked).toEqual(["alpha"]);
+      expect(controller.hoverTimer).toBeNull();
+      expect(regionCount(element)).toBe(1);
+    });
+
+    it("restores the link when Alt is released and pressed again", async () => {
+      lumine.config.set("hyperclick.hoverDelay", 60000);
       register();
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
       await pressModifier();
@@ -253,19 +268,17 @@ describe("hyperclick", () => {
       expect(regionCount(element)).toBe(1);
     });
 
-    it("uses the configured Ctrl or Cmd modifier", async () => {
+    it("uses Alt even when the old modifier setting contains Ctrl", async () => {
       lumine.config.set("hyperclick.modifier", "ctrl");
       register();
       element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
-      await pressModifier();
+      await pressModifier({ key: "Control", ctrlKey: true });
+      await pressModifier({ key: "Meta", metaKey: true });
       expect(asked).toEqual([]);
+      expect(regionCount(element)).toBe(0);
+      expect(element.classList.contains("hyperclick")).toBe(false);
 
-      await pressModifier(
-        process.platform === "darwin"
-          ? { key: "Meta", metaKey: true }
-          : { key: "Control", ctrlKey: true },
-      );
-
+      await pressModifier();
       expect(asked).toEqual(["alpha"]);
       expect(regionCount(element)).toBe(1);
     });
@@ -292,11 +305,15 @@ describe("hyperclick", () => {
       it(`forgets the pointer after ${eventName}`, async () => {
         register();
         element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+        await pressModifier();
+        expect(regionCount(element)).toBe(1);
         const target = eventName === "blur" ? window : element;
         target.dispatchEvent(new Event(eventName));
+        element.getComponent().updateSync();
+        expect(regionCount(element)).toBe(0);
         await pressModifier();
 
-        expect(asked).toEqual([]);
+        expect(asked).toEqual(["alpha"]);
         expect(element.classList.contains("hyperclick")).toBe(false);
       });
     }
@@ -316,25 +333,39 @@ describe("hyperclick", () => {
       expect(regionCount(element)).toBe(1);
     });
 
-    it("drops a delayed answer if the modifier was released", async () => {
-      let release;
-      provider.getSuggestionForWord = (anEditor, text, range) =>
-        new Promise((resolve) => {
-          release = () => resolve({ range, callback: () => calls.push(text) });
-        });
-      register();
-      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
-      await pressModifier();
-      expect(typeof release).toBe("function");
+    for (const cancellation of ["Alt release", "mouseleave", "blur", "destroy", "deactivate"]) {
+      it(`drops a delayed answer after ${cancellation}`, async () => {
+        let release;
+        provider.getSuggestionForWord = (anEditor, text, range) =>
+          new Promise((resolve) => {
+            release = () => resolve({ range, callback: () => calls.push(text) });
+          });
+        register();
+        element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2]));
+        await pressModifier();
+        const request = mainModule.editors.get(editor).controller;
+        expect(typeof release).toBe("function");
 
-      window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
-      release();
-      await flushMicrotasks();
-      element.getComponent().updateSync();
+        if (cancellation === "Alt release") {
+          window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
+        } else if (cancellation === "destroy") {
+          editor.destroy();
+        } else if (cancellation === "deactivate") {
+          await lumine.packages.deactivatePackage("hyperclick");
+        } else {
+          const target = cancellation === "blur" ? window : element;
+          target.dispatchEvent(new Event(cancellation));
+        }
+        expect(request.signal.aborted).toBe(true);
+        release();
+        await flushMicrotasks();
+        if (cancellation !== "destroy") element.getComponent().updateSync();
 
-      expect(regionCount(element)).toBe(0);
-      expect(element.classList.contains("hyperclick")).toBe(false);
-    });
+        expect(regionCount(element)).toBe(0);
+        expect(element.classList.contains("hyperclick")).toBe(false);
+        expect(calls).toEqual([]);
+      });
+    }
   });
 
   describe("when the pointer moves with the modifier held", () => {
@@ -367,6 +398,67 @@ describe("hyperclick", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
       element.getComponent().updateSync();
       expect(regionCount(element)).toBe(0);
+    });
+
+    for (const key of ["ctrlKey", "metaKey"]) {
+      it(`ignores mouse movement with only ${key}`, async () => {
+        register();
+        element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { [key]: true }));
+        await flushMicrotasks();
+        element.getComponent().updateSync();
+
+        expect(asked).toEqual([]);
+        expect(regionCount(element)).toBe(0);
+        expect(element.classList.contains("hyperclick")).toBe(false);
+        expect(getComputedStyle(element.querySelector(".scroll-view")).cursor).not.toBe("pointer");
+      });
+    }
+
+    it("updates the link between words and clears it on whitespace", async () => {
+      provider.getSuggestionForWord = (anEditor, text, range) => {
+        asked.push(text);
+        return { range, callback: () => calls.push(text) };
+      };
+      register();
+      for (const [column, word] of [
+        [2, "alpha"],
+        [7, "beta"],
+      ]) {
+        element.dispatchEvent(mouseEvent("mousemove", editor, [0, column], { altKey: true }));
+        await flushMicrotasks();
+        element.getComponent().updateSync();
+        expect(regionCount(element)).toBe(1);
+        expect(mainModule.editors.get(editor).suggestion.wordRange).toEqual(
+          new Range([0, word === "alpha" ? 0 : 6], [0, word === "alpha" ? 5 : 10]),
+        );
+      }
+      expect(asked).toEqual(["alpha", "beta"]);
+
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 5], { altKey: true }));
+      element.getComponent().updateSync();
+      expect(regionCount(element)).toBe(0);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+    });
+
+    it("drops an answer for the previous word when the pointer moves on", async () => {
+      let release;
+      provider.getSuggestionForWord = (anEditor, text, range) => {
+        if (text !== "alpha") return;
+        return new Promise((resolve) => {
+          release = () => resolve({ range, callback: () => calls.push(text) });
+        });
+      };
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const request = mainModule.editors.get(editor).controller;
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 7], { altKey: true }));
+      expect(request.signal.aborted).toBe(true);
+      release();
+      await flushMicrotasks();
+      element.getComponent().updateSync();
+
+      expect(regionCount(element)).toBe(0);
+      expect(element.classList.contains("hyperclick")).toBe(false);
     });
 
     it("clears the affordance when the modifier is released", async () => {
@@ -436,6 +528,53 @@ describe("hyperclick", () => {
       await conditionPromise(() => calls.length === 1);
       expect(event.defaultPrevented).toBe(true);
     });
+
+    it("cancels the pending hover timer before resolving a click", async () => {
+      lumine.config.set("hyperclick.hoverDelay", 60000);
+      register();
+      element.dispatchEvent(mouseEvent("mousemove", editor, [0, 2], { altKey: true }));
+      const controller = mainModule.editors.get(editor);
+      expect(controller.hoverTimer).not.toBeNull();
+
+      const event = mouseEvent("mousedown", editor, [0, 2], { altKey: true });
+      element.dispatchEvent(event);
+      await flushMicrotasks();
+
+      expect(asked).toEqual(["alpha"]);
+      expect(calls).toEqual(["alpha"]);
+      expect(controller.hoverTimer).toBeNull();
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("does not follow a delayed click answer after Alt is released", async () => {
+      let release;
+      provider.getSuggestionForWord = (anEditor, text, range) =>
+        new Promise((resolve) => {
+          release = () => resolve({ range, callback: () => calls.push(text) });
+        });
+      register();
+      const event = mouseEvent("mousedown", editor, [0, 2], { altKey: true });
+      element.dispatchEvent(event);
+      window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Alt" }));
+      release();
+      await flushMicrotasks();
+
+      expect(calls).toEqual([]);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+    });
+
+    for (const options of [{}, { ctrlKey: true }, { metaKey: true }, { altKey: true, button: 2 }]) {
+      it(`leaves a non-Alt-left click alone (${JSON.stringify(options)})`, async () => {
+        register();
+        const event = mouseEvent("mousedown", editor, [0, 2], options);
+        element.dispatchEvent(event);
+        await flushMicrotasks();
+
+        expect(asked).toEqual([]);
+        expect(calls).toEqual([]);
+        expect(event.defaultPrevented).toBe(false);
+      });
+    }
 
     it("ignores a click without the modifier", async () => {
       register();

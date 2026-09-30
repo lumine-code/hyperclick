@@ -35,7 +35,7 @@ describe("hyperclick package assets", () => {
   it("defines the config schema under the hyperclick namespace without order keys", () => {
     const pkg = JSON.parse(read("package.json"));
     const schema = pkg.configSchema;
-    expect(Object.keys(schema).sort()).toEqual(["hoverDelay", "modifier"]);
+    expect(Object.keys(schema)).toEqual(["hoverDelay"]);
     for (const entry of Object.values(schema)) {
       expect(entry.order).toBeUndefined();
       expect(entry.title).toBeDefined();
@@ -44,9 +44,6 @@ describe("hyperclick package assets", () => {
       const keys = Object.keys(entry);
       expect(keys[keys.length - 1]).toBe("default");
     }
-    // Ctrl is the editor's add-a-cursor modifier on every platform, so it must
-    // not be what this package takes by default.
-    expect(schema.modifier.default).toBe("alt");
   });
 
   it("provides one to three background tips", () => {

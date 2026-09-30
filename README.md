@@ -2,12 +2,12 @@
 
 Follow the symbol under the pointer to its definition with a click.
 
-Hold the modifier key and symbols become links: the one under the pointer is underlined, and clicking it goes wherever its provider decides — a definition, a declaration, a referenced file.
+Hold Alt and symbols become links: the one under the pointer is underlined, the mouse cursor becomes a pointer, and left-clicking it goes wherever its provider decides — a definition, a declaration, a referenced file.
 
 ## Features
 
-- **Click to follow**: hold the modifier, click a symbol, and land on its definition.
-- **Live affordance**: the symbol under the pointer is underlined only when something can resolve it.
+- **Click to follow**: hold Alt, left-click a symbol, and land on its definition.
+- **Live affordance**: pressing or releasing Alt updates the underline and mouse cursor even when the mouse stays still, and moving with Alt held updates the target.
 - **Pluggable providers**: any package can answer for the words it understands.
 - **Language aware**: word boundaries follow the grammar's own non-word characters.
 - **Scope filtering**: providers opt out of comments, strings, or any scope selector they name.
@@ -25,7 +25,7 @@ Commands available in `lumine-text-editor:not([mini])`:
 
 ## Usage
 
-The modifier defaults to Alt because Ctrl (Cmd on macOS) is already the editor's add-a-cursor modifier — choosing it in the settings trades one for the other.
+Without Alt, moving the mouse shows no link style and clicking keeps the editor's normal behavior. Pressing Alt checks the symbol under a stationary mouse immediately; releasing it removes the link style and cancels any pending answer. Ctrl and Cmd keep their normal editor behavior.
 
 What a click does is up to whichever provider answered. With the bundled packages, that means jumping to a symbol's declaration; a language server, through `ide-client`, resolves it more precisely than a tags file can.
 

@@ -7,7 +7,7 @@
     "go-to-definition",
     "declaration",
     "navigation",
-    "ctrl-click",
+    "alt-click",
     "underline"
   ],
   "repository": "https://github.com/lumine-code/hyperclick",
@@ -33,25 +33,9 @@
     "format:check": "prettier --check ."
   },
   "configSchema": {
-    "modifier": {
-      "title": "Modifier",
-      "description": "The key held down to turn symbols into links. Ctrl (Cmd on macOS) is also the editor's add-a-cursor modifier, so choosing it trades one for the other.",
-      "type": "string",
-      "enum": [
-        {
-          "value": "alt",
-          "description": "Alt"
-        },
-        {
-          "value": "ctrl",
-          "description": "Ctrl (Cmd on macOS)"
-        }
-      ],
-      "default": "alt"
-    },
     "hoverDelay": {
       "title": "Hover Delay",
-      "description": "How long the pointer must rest on a symbol, in milliseconds, before its providers are asked about it. Higher values ask less often while the pointer is travelling.",
+      "description": "How long the pointer must rest on a symbol while Alt is held, in milliseconds, before its providers are asked about it. Pressing Alt checks immediately; higher values ask less often while the pointer is travelling.",
       "type": "integer",
       "minimum": 0,
       "default": 100

@@ -9,7 +9,7 @@ Turns a word in the editor into something clickable: the provider is asked about
 | Consumed by | `consumeHyperclick(provider)` returning a `Disposable`    |
 | Owner       | [`hyperclick`](https://github.com/lumine-code/hyperclick) |
 
-`hyperclick` watches the pointer while the user holds the configured modifier, works out the word underneath, and asks each provider — highest priority first — whether it means anything. The first provider to answer wins: its range is underlined, and its callback runs on click.
+`hyperclick` watches the pointer while the user holds Alt, works out the word underneath, and asks each provider — highest priority first — whether it means anything. Pressing Alt checks the last pointer position immediately, without waiting for the hover delay. The first provider to answer wins: its range is underlined, and its callback runs on left Alt-click or through the keyboard navigation command.
 
 ## Registration
 
@@ -95,9 +95,9 @@ module.exports = {
 
 **`disableForSelector` is enforced by the consumer.** You do not need to test the scope chain yourself; a provider that also does is merely redundant.
 
-**Filter out the trivial answer.** `symbol` drops a result whose position equals the position asked about, so holding the modifier over a definition produces no affordance at all rather than a link to where the pointer already is.
+**Filter out the trivial answer.** `symbol` drops a result whose position equals the position asked about, so holding Alt over a definition produces no affordance at all rather than a link to where the pointer already is.
 
-**A late answer is dropped.** Once the pointer moves to another word, the request is aborted and whatever it eventually resolves is discarded. Going async is fine; holding state that assumes your answer was used is not.
+**A late answer is dropped.** Once the pointer moves to another word, leaves the editor, Alt is released, or the window loses focus, the request is aborted and whatever it eventually resolves is discarded. Going async is fine; holding state that assumes your answer was used is not.
 
 **Multiple results are yours to present.** The contract carries one callback, not a list. A provider with several candidates should open its own UI from the callback, as `symbol` does when more than one declaration matches.
 
