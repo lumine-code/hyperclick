@@ -798,6 +798,126 @@ describe("hyperclick", () => {
     });
   });
 
+  describe("provider removal", () => {
+    it("clears displayed links immediately and refuses their cached callbacks", async () => {
+      const subscription = register();
+      const controller = mainModule.editors.get(editor);
+      const suggestion = await controller.lookup(new Range([0, 0], [0, 5]));
+      expect(controller.suggestion).toBe(suggestion);
+      expect(controller.markers.length).toBe(1);
+      expect(element.classList.contains("hyperclick")).toBe(true);
+
+      subscription.dispose();
+
+      expect(controller.suggestion).toBeNull();
+      expect(controller.markers).toEqual([]);
+      expect(element.classList.contains("hyperclick")).toBe(false);
+      expect(await controller.confirm(suggestion)).toBe(false);
+      expect(calls).toEqual([]);
+    });
+
+    it("preserves a displayed link when a different registration is removed", async () => {
+      const unrelated = register({ getSuggestionForWord: () => undefined });
+      register();
+      const controller = mainModule.editors.get(editor);
+      const suggestion = await controller.lookup(new Range([0, 0], [0, 5]));
+
+      unrelated.dispose();
+
+      expect(controller.suggestion).toBe(suggestion);
+      expect(controller.markers.length).toBe(1);
+      expect(element.classList.contains("hyperclick")).toBe(true);
+    });
+
+    it("does not display an answer removed before the controller receives it", async () => {
+      const subscription = register();
+      const controller = mainModule.editors.get(editor);
+      const getSuggestion = controller.registry.getSuggestion.bind(controller.registry);
+      spyOn(controller.registry, "getSuggestion").and.callFake(async (...args) => {
+        const suggestion = await getSuggestion(...args);
+        subscription.dispose();
+        return suggestion;
+      });
+
+      expect(await controller.lookup(new Range([0, 0], [0, 5]))).toBeNull();
+      expect(controller.suggestion).toBeNull();
+      expect(controller.markers).toEqual([]);
+    });
+
+    it("does not revive a cached callback when the same provider is registered again", async () => {
+      const subscription = register();
+      const controller = mainModule.editors.get(editor);
+      const oldSuggestion = await controller.lookup(new Range([0, 0], [0, 5]));
+
+      subscription.dispose();
+      register();
+
+      expect(await controller.confirm(oldSuggestion)).toBe(false);
+      const newSuggestion = await controller.lookup(new Range([0, 0], [0, 5]));
+      expect(await controller.confirm(newSuggestion)).toBe(true);
+      expect(calls).toEqual(["alpha"]);
+    });
+
+    for (const source of ["mouse", "keyboard"]) {
+      it(`discards an unregistered provider's delayed ${source} answer`, async () => {
+        let release;
+        provider.getSuggestionForWord = (anEditor, text, range) =>
+          new Promise((resolve) => {
+            release = () => resolve({ range, callback: () => calls.push(text) });
+          });
+        const subscription = register();
+        const controller = mainModule.editors.get(editor);
+        editor.setCursorBufferPosition([0, 2]);
+        const following =
+          source === "mouse"
+            ? controller.didMouseDown(mouseEvent("mousedown", editor, [0, 2], { altKey: true }))
+            : controller.confirmCursor();
+        expect(release).toEqual(jasmine.any(Function));
+
+        subscription.dispose();
+        release();
+
+        const result = await following;
+        if (source === "keyboard") expect(result).toBe(false);
+        expect(calls).toEqual([]);
+        expect(controller.suggestion).toBeNull();
+      });
+    }
+  });
+
+  describe("callback failures", () => {
+    for (const source of ["mouse", "keyboard"]) {
+      for (const failure of ["throw", "rejection"]) {
+        it(`logs a ${failure} from a ${source} callback with its provider's name`, async () => {
+          const error = new Error("could not follow alpha");
+          const callback = jasmine.createSpy("failed callback").and.callFake(() => {
+            if (failure === "throw") throw error;
+            return Promise.reject(error);
+          });
+          provider.getSuggestionForWord = (anEditor, text, range) => ({ range, callback });
+          register();
+          spyOn(console, "error");
+          const controller = mainModule.editors.get(editor);
+          editor.setCursorBufferPosition([0, 2]);
+
+          if (source === "mouse") {
+            await controller.didMouseDown(
+              mouseEvent("mousedown", editor, [0, 2], { altKey: true }),
+            );
+          } else {
+            expect(await controller.confirmCursor()).toBe(true);
+          }
+
+          expect(callback).toHaveBeenCalledTimes(1);
+          expect(console.error).toHaveBeenCalledOnceWith(
+            "hyperclick provider stub failed to follow its suggestion:",
+            error,
+          );
+        });
+      }
+    }
+  });
+
   describe("suggestion ranges", () => {
     it("underlines every range of a multi-range suggestion", async () => {
       register({

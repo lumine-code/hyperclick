@@ -44,7 +44,7 @@ type HyperclickProvider = {
 
 type Suggestion = {
   range: Range | Range[];
-  callback(): void;
+  callback(): void | Promise<unknown>;
 };
 ```
 
@@ -62,7 +62,7 @@ Optional:
 | `providerName`       | Names the provider in diagnostics when it throws.                                                 |
 | `disableForSelector` | A comma-separated scope selector. Ranges whose scope chain matches are never offered to you.      |
 
-The suggestion's `range` is what gets underlined, and does not have to equal the range you were asked about. Give an array to underline several ranges as one link. `callback` runs when the user follows it.
+The suggestion's `range` is what gets underlined, and does not have to equal the range you were asked about. Give an array to underline several ranges as one link. `callback` runs when the user follows it and may return a Promise. Synchronous errors and Promise rejections are logged with the provider's name; the returned value does not change whether the click was claimed.
 
 ## Minimal example
 
@@ -103,7 +103,7 @@ module.exports = {
 
 ## Teardown
 
-`consumeHyperclick` returns a `Disposable` that unregisters the provider. Nothing else is called on teardown: a provider should assume it will simply stop being asked.
+`consumeHyperclick` returns a `Disposable` that unregisters the provider. Unregistering removes its displayed links, discards pending answers, and prevents cached callbacks from running. Registering the same provider object again creates a new registration and cannot revive an old answer. Nothing else is called on teardown: a provider should assume it will simply stop being asked.
 
 ## Versioning
 
