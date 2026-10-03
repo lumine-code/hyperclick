@@ -13,3 +13,13 @@ lumine-text-editor.hyperclick,
 lumine-text-editor.hyperclick .scroll-view {
   cursor: pointer;
 }
+
+/* DOM targets use the same temporary affordance as buffer suggestions. */
+.hyperclick-dom-link {
+  cursor: pointer;
+  border-bottom: 1px solid var(--accent-color);
+}
+
+.hyperclick-dom-link * {
+  cursor: inherit;
+}

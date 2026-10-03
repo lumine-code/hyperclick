@@ -1,6 +1,6 @@
 # hyperclick.provider
 
-Turns a word in the editor into something clickable: the provider is asked about a range, and answers with a callback to run if the user follows it.
+Resolves source words or rendered DOM locations to a callback that hyperclick follows with its shared gesture policy.
 
 |             |                                                           |
 | ----------- | --------------------------------------------------------- |
@@ -31,11 +31,17 @@ Return one provider, or an array of them.
 
 ```ts
 type HyperclickProvider = {
-  getSuggestionForWord(
+  getSuggestionForWord?(
     editor: TextEditor,
     text: string,
     range: Range,
   ): Suggestion | undefined | Promise<Suggestion | undefined>;
+
+  elementSelector?: string;
+  getSuggestionForElement?(
+    element: HTMLElement,
+    context: { signal: AbortSignal },
+  ): ElementSuggestion | undefined | Promise<ElementSuggestion | undefined>;
 
   priority?: number;
   providerName?: string;
@@ -46,23 +52,37 @@ type Suggestion = {
   range: Range | Range[];
   callback(): void | Promise<unknown>;
 };
+
+type ElementSuggestion = {
+  element: HTMLElement;
+  callback(): void | Promise<unknown>;
+  isCurrent?(): boolean;
+};
 ```
 
-Required:
+Provide at least one lookup: `getSuggestionForWord`, or `getSuggestionForElement` together with `elementSelector`. A provider may implement both. Existing word providers need no changes.
 
-| Member                                      | Description                                               |
-| ------------------------------------------- | --------------------------------------------------------- |
-| `getSuggestionForWord(editor, text, range)` | Return a suggestion, or nothing to decline. May be async. |
+Lookup methods:
+
+| Member                                       | Description                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `getSuggestionForWord(editor, text, range)`  | Return a suggestion, or nothing to decline. May be async.                                                    |
+| `getSuggestionForElement(element, {signal})` | Return a suggestion for the nearest element matching `elementSelector`, or nothing to decline. May be async. |
 
 Optional:
 
-| Member               | Description                                                                                       |
-| -------------------- | ------------------------------------------------------------------------------------------------- |
-| `priority`           | Higher is asked first, and the first answer wins. Defaults to `0`; the bundled providers use `1`. |
-| `providerName`       | Names the provider in diagnostics when it throws.                                                 |
-| `disableForSelector` | A comma-separated scope selector. Ranges whose scope chain matches are never offered to you.      |
+| Member               | Description                                                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `priority`           | Higher is asked first, and the first answer wins. Defaults to `0`; the bundled providers use `1`.                                  |
+| `providerName`       | Names the provider in diagnostics when it throws.                                                                                  |
+| `disableForSelector` | A comma-separated scope selector. Ranges whose scope chain matches are never offered to you.                                       |
+| `elementSelector`    | CSS selector identifying rendered navigation targets. Required for DOM lookups; editor word lookup never claims a matching target. |
 
 The suggestion's `range` is what gets underlined, and does not have to equal the range you were asked about. Give an array to underline several ranges as one link. `callback` runs when the user follows it and may return a Promise. Synchronous errors and Promise rejections are logged with the provider's name; the returned value does not change whether the click was claimed.
+
+DOM suggestions return the exact matched `element` instead of a buffer range. Only connected targets inside the workspace are accepted. `isCurrent`, when present, is checked before offering and following a cached destination; a producer should use it to guard the source, kernel and registration generation that produced the location. Render normal selectable text without its own navigation handler, permanent pointer cursor, underline or tooltip. Hyperclick owns hover delay, Alt-left-click and temporary styling. A focusable target may be followed with Enter, like the existing keyboard path for source words.
+
+Set `data-hyperclick-boundary` on a rendered surface whose DOM must not be interpreted as editor buffer coordinates. This also blocks word fallback when the DOM provider declines. If a target is reused for different content without changing its text, update `data-hyperclick-revision` to invalidate the old hover and pending lookup. Hyperclick observes target text/removal and these attributes; opaque iframe documents are outside this DOM tracker.
 
 ## Minimal example
 
@@ -91,11 +111,11 @@ module.exports = {
 
 **Declining is the common case, so make it cheap.** `getSuggestionForWord` is called as the pointer travels, not on click. Check the grammar and the token before doing any real work.
 
-**You are only asked about words.** Whitespace, punctuation runs, and positions past the end of a line never reach a provider — the word is split on the editor's scoped `nonWordCharacters` setting, so what counts as one word follows the language.
+**Word lookups only receive words.** Whitespace, punctuation runs, and positions past the end of a line never reach a word provider — the word is split on the editor's scoped `nonWordCharacters` setting, so what counts as one word follows the language. DOM providers only receive elements matching their declared selector and are not asked without Alt, except when a focused target is explicitly activated from the keyboard.
 
 **`disableForSelector` is enforced by the consumer.** You do not need to test the scope chain yourself; a provider that also does is merely redundant.
 
-**Filter out the trivial answer.** `symbol` drops a result whose position equals the position asked about, so holding Alt over a definition produces no affordance at all rather than a link to where the pointer already is.
+**Filter out the trivial answer.** Drop a result whose position equals the position asked about, so holding Alt over a definition produces no affordance at all rather than a link to where the pointer already is.
 
 **A late answer is dropped.** Once the pointer moves to another word, leaves the editor, Alt is released, or the window loses focus, the request is aborted and whatever it eventually resolves is discarded. Going async is fine; holding state that assumes your answer was used is not.
 

@@ -9,6 +9,7 @@ Hold Alt and symbols become links: the one under the pointer is underlined, the 
 - **Click to follow**: hold Alt, left-click a symbol, and land on its definition.
 - **Live affordance**: pressing or releasing Alt updates the underline and mouse cursor even when the mouse stays still, and moving with Alt held updates the target.
 - **Pluggable providers**: any package can answer for the words it understands.
+- **Rendered targets**: registered output locations use the same Alt gesture and hover delay as source symbols, including dock panels and notebook results.
 - **Language aware**: word boundaries follow the grammar's own non-word characters.
 - **Scope filtering**: providers opt out of comments, strings, or any scope selector they name.
 - **Keyboard path**: a command follows whatever the cursor is sitting on.
@@ -31,7 +32,7 @@ What a click does is up to whichever provider answered. With the bundled package
 
 ## Services
 
-- [`hyperclick.provider`](docs/hyperclick.provider.md): consumed to let packages turn the words they understand into links.
+- [`hyperclick.provider`](docs/hyperclick.provider.md): consumed to let packages resolve source words and rendered locations.
 
 ## Customization
 
