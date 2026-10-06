@@ -28,7 +28,7 @@ Commands available in `lumine-text-editor:not([mini])`:
 
 Without Alt, moving the mouse shows no link style and clicking keeps the editor's normal behavior. Pressing Alt checks the symbol under a stationary mouse immediately; releasing it removes the link style and cancels any pending answer. Ctrl and Cmd keep their normal editor behavior.
 
-What a click does is up to whichever provider answered. With the bundled packages, that means jumping to a symbol's declaration; a language server, through `ide-client`, resolves it more precisely than a tags file can.
+What a click does is up to whichever provider answered. With the bundled packages, that means jumping to a symbol's declaration; a language server, through `ide`, resolves it more precisely than a tags file can.
 
 ## Services
 
