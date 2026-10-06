@@ -4,7 +4,7 @@
  * whatever else marks the same range. A highlight region is its own box and
  * composes with anything. */
 lumine-text-editor .highlights .hyperclick .region {
-  border-bottom: 1px solid var(--accent-color);
+  border-bottom: 1px solid var(--accent-indicator-color);
   pointer-events: none;
 }
 
@@ -17,7 +17,7 @@ lumine-text-editor.hyperclick .scroll-view {
 /* DOM targets use the same temporary affordance as buffer suggestions. */
 .hyperclick-dom-link {
   cursor: pointer;
-  border-bottom: 1px solid var(--accent-color);
+  border-bottom: 1px solid var(--accent-indicator-color);
 }
 
 .hyperclick-dom-link * {
