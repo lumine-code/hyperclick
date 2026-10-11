@@ -117,7 +117,7 @@ module.exports = {
 
 **Filter out the trivial answer.** Drop a result whose position equals the position asked about, so holding Alt over a definition produces no affordance at all rather than a link to where the pointer already is.
 
-**A late answer is dropped.** Once the pointer moves to another word, leaves the editor, Alt is released, or the window loses focus, the request is aborted and whatever it eventually resolves is discarded. Going async is fine; holding state that assumes your answer was used is not.
+**A late answer is dropped.** Once the pointer moves to another word, leaves the editor, Alt is released, the editor's path or grammar changes, or the window loses focus, the request is aborted and whatever it eventually resolves is discarded. Going async is fine; holding state that assumes your answer was used is not.
 
 **Multiple results are yours to present.** The contract carries one callback, not a list. A provider with several candidates should open its own UI from the callback, as `symbol` does when more than one declaration matches.
 
