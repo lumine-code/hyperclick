@@ -1,0 +1,17 @@
+{
+  "title": "hyperclick",
+  "description": "Recognize a documentation URL as a clickable link in the editor.",
+  "recordedOn": "2026-10-13",
+  "sourceRevision": "d3ee3b7eb35311787a7538255eec31220c49d296",
+  "mode": "normal",
+  "fontSettings": "default",
+  "themeSourceRevision": "6564a9e21899b5541e9c8f8006f9be6d6d72e6ad",
+  "images": [
+    {
+      "file": "demo.png",
+      "label": "Recognize a documentation URL as a clickable link in the editor.",
+      "width": 1100,
+      "height": 500
+    }
+  ]
+}

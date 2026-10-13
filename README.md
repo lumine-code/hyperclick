@@ -14,6 +14,8 @@ Hold Alt and symbols become links: the one under the pointer is underlined, the 
 - **Scope filtering**: providers opt out of comments, strings, or any scope selector they name.
 - **Keyboard path**: a command follows whatever the cursor is sitting on.
 
+![Recognize a documentation URL as a clickable link in the editor.](.github/demo.png)
+
 ## Installation
 
 To install `hyperclick` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/hyperclick`.
