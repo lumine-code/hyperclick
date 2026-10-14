@@ -1,17 +1,76 @@
 {
   "title": "hyperclick",
   "description": "Recognize a documentation URL as a clickable link in the editor.",
-  "recordedOn": "2026-10-13",
-  "sourceRevision": "d3ee3b7eb35311787a7538255eec31220c49d296",
+  "recordedOn": "2026-10-14",
+  "sourceRevision": "ea08244215c6b60142970085a7a58081060ad871",
+  "themeSourceRevision": "7fbd047a87ecf1367c896b19ff270cdc28d319f7",
   "mode": "normal",
   "fontSettings": "default",
-  "themeSourceRevision": "6564a9e21899b5541e9c8f8006f9be6d6d72e6ad",
+  "scenario": "demo.js",
+  "recipeHash": "90d0b20e5a93a1493825ed7df1f2b87aa3fff341cc649112d0f007819f84ae23",
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "electron": "44.7.0",
+    "chrome": "152.0.7977.130",
+    "devicePixelRatio": 1,
+    "locale": "en-GB",
+    "fontFamily": "Fira Code, Menlo, DejaVu Sans Mono, Consolas, monospace",
+    "fontSize": 14,
+    "themes": ["one-day-syntax", "one-day-ui"]
+  },
+  "viewport": { "width": 1100, "height": 500 },
+  "cornerRadius": 10,
+  "sources": {
+    "editor": {
+      "revision": "f843acddbced9b8bd7bbe0a96005bb55429694ce",
+      "dirty": false,
+      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "package": {
+      "revision": "ea08244215c6b60142970085a7a58081060ad871",
+      "dirty": false,
+      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "hyperclick": {
+      "revision": "ea08244215c6b60142970085a7a58081060ad871",
+      "dirty": false,
+      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "language-gfm": {
+      "revision": "be723ccf806fdd4a2a06638f6e881c09a53b4409",
+      "dirty": false,
+      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "language-hyperlink": {
+      "revision": "bb96d4a678a8c1582983bef3c6c27494846aee12",
+      "dirty": false,
+      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "link": {
+      "revision": "d48b1f303d549a1299f7ff576d307d112b88688b",
+      "dirty": false,
+      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "one-theme": {
+      "revision": "7fbd047a87ecf1367c896b19ff270cdc28d319f7",
+      "dirty": false,
+      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "fixtures": [
+    {
+      "file": "more/README.md",
+      "sha256": "ea8b9ffc4ba2581e49f26db71950f3bff3f579ae314f3b21c98a58341f07b698"
+    }
+  ],
   "images": [
     {
       "file": "demo.png",
       "label": "Recognize a documentation URL as a clickable link in the editor.",
       "width": 1100,
-      "height": 500
+      "height": 500,
+      "sha256": "496a2166a600bb5fbdc5ad6a0b98d8422552f1d4fe6cf133e15a67f5e0b8ee38"
     }
   ]
 }
