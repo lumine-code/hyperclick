@@ -20,4 +20,13 @@ describe("Hyperclick command availability", () => {
     expect(lumine.commands.canDispatch(editor.element, "hyperclick:confirm-cursor")).toBe(false);
     expect(getSuggestionForWord).not.toHaveBeenCalled();
   });
+  it("does not advertise word navigation for an editor with no controller", () => {
+    lease = main.consumeHyperclick({ getSuggestionForWord() {} });
+    const unobserved = lumine.workspace.buildTextEditor();
+    lumine.workspace.getElement().appendChild(unobserved.element);
+    expect(lumine.commands.canDispatch(unobserved.element, "hyperclick:confirm-cursor")).toBe(
+      false,
+    );
+    unobserved.destroy();
+  });
 });
