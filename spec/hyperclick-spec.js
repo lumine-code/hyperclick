@@ -127,8 +127,7 @@ describe("hyperclick", () => {
   let editor, element, mainModule, provider, calls, asked;
 
   beforeEach(async () => {
-    jasmine.unspy(Date, "now");
-    jasmine.unspy(global, "setTimeout");
+    jasmine.useRealClock();
 
     lumine.config.set("hyperclick.hoverDelay", 0);
 
