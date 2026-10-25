@@ -13,6 +13,11 @@ async function flush() {
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("hyperclick rendered DOM locations", () => {
+  // Analysis fixtures use a real grammar; None deliberately disables this package.
+  beforeEach(async () => {
+    await lumine.packages.activatePackage("language-text");
+  });
+
   let main;
   let root;
   let surface;

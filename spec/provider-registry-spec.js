@@ -9,6 +9,11 @@ function deferred() {
 }
 
 describe("hyperclick provider registrations", () => {
+  // Analysis fixtures use a real grammar; None deliberately disables this package.
+  beforeEach(async () => {
+    await lumine.packages.activatePackage("language-text");
+  });
+
   let registry, editor, range, callback, provider;
 
   beforeEach(() => {
@@ -34,6 +39,17 @@ describe("hyperclick provider registrations", () => {
   function lookup() {
     return registry.getSuggestion(editor, "alpha", range);
   }
+
+  it("does not query providers with None and resumes with a grammar", async () => {
+    const grammar = editor.getGrammar();
+    registry.add(provider);
+    editor.setGrammar(lumine.grammars.nullGrammar);
+    expect(await lookup()).toBeNull();
+    expect(provider.getSuggestionForWord).not.toHaveBeenCalled();
+    editor.setGrammar(grammar);
+    expect(await lookup()).not.toBeNull();
+    expect(provider.getSuggestionForWord).toHaveBeenCalledTimes(1);
+  });
 
   it("discards an answer resolved after its registration was disposed", async () => {
     const answer = deferred();

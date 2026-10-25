@@ -2,6 +2,11 @@ const path = require("node:path");
 const os = require("node:os");
 
 describe("Hyperclick pending editor identity", () => {
+  // Analysis fixtures use a real grammar; None deliberately disables this package.
+  beforeEach(async () => {
+    await lumine.packages.activatePackage("language-text");
+  });
+
   let editor, element, lease, resolve, callback, asked;
   beforeEach(async () => {
     jasmine.useRealClock();
@@ -27,6 +32,8 @@ describe("Hyperclick pending editor identity", () => {
     });
   });
   afterEach(async () => {
+    resolve?.();
+    resolve = null;
     lease.dispose();
     editor.destroy();
     await lumine.packages.deactivatePackage("hyperclick");
@@ -49,6 +56,10 @@ describe("Hyperclick pending editor identity", () => {
       await new Promise((finish) => setTimeout(finish, 0));
       expect(callback.calls.count()).toBe(change === "none" ? 1 : 0);
       if (change !== "none") {
+        if (change === "grammar") {
+          expect(lumine.commands.canDispatch(element, "hyperclick:confirm-cursor")).toBeFalse();
+          editor.setGrammar(lumine.grammars.grammarForScopeName("text.plain"));
+        }
         lumine.commands.dispatch(element, "hyperclick:confirm-cursor");
         await conditionPromise(() => asked === 2);
         resolve();

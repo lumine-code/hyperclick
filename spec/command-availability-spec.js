@@ -1,4 +1,9 @@
 describe("Hyperclick command availability", () => {
+  // Analysis fixtures use a real grammar; None deliberately disables this package.
+  beforeEach(async () => {
+    await lumine.packages.activatePackage("language-text");
+  });
+
   let main, editor, lease;
   beforeEach(async () => {
     jasmine.attachToDOM(lumine.workspace.getElement());

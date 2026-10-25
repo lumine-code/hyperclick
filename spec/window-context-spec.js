@@ -1,4 +1,9 @@
 describe("hyperclick in editor windows", () => {
+  // Analysis fixtures use a real grammar; None deliberately disables this package.
+  beforeEach(async () => {
+    await lumine.packages.activatePackage("language-text");
+  });
+
   beforeEach(async () => {
     jasmine.useRealClock();
     jasmine.attachToDOM(lumine.workspace.getElement());
