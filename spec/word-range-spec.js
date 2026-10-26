@@ -27,6 +27,45 @@ describe("wordRangeAt", () => {
     expect(textAt(0, 13)).toBe("gamma");
   });
 
+  it("resolves a complete word far into a long row without reading the whole row", () => {
+    editor.setText("x".repeat(100000) + " target tail");
+    spyOn(editor, "lineTextForBufferRow").and.throwError("whole line read");
+    const range = wordRangeAt(editor, new Point(0, 100003));
+    expect(range.start.column).toBe(100001);
+    expect(range.end.column).toBe(100007);
+  });
+
+  it("declines oversized words instead of supplying a truncated target", () => {
+    editor.setText("a".repeat(4097));
+    expect(wordRangeAt(editor, new Point(0, 2000))).toBeNull();
+    editor.setText("a".repeat(4096));
+    expect(wordRangeAt(editor, new Point(0, 2000)).end.column).toBe(4096);
+  });
+
+  it("guards direct provider lookups before reading a large selected range", async () => {
+    const read = jasmine.createSpy("source text");
+    const resolve = jasmine.createSpy("provider");
+    const context = {
+      editor: {
+        getGrammar: () => ({}),
+        getBuffer: () => ({ characterIndexForPosition: (point) => point.column }),
+        getTextInBufferRange: read,
+      },
+      registry: { getSuggestion: resolve },
+      cancelPending: jasmine.createSpy("cancel"),
+    };
+    const { Range } = require("lumine");
+    expect(
+      await require("../lib/hyperclick-editor").prototype.lookup.call(
+        context,
+        new Range([0, 0], [0, 600000000]),
+      ),
+    ).toBeNull();
+    expect(read).not.toHaveBeenCalled();
+    expect(resolve).not.toHaveBeenCalled();
+    expect(context.cancelPending).toHaveBeenCalled();
+  });
+
   it("returns null on whitespace", () => {
     editor.setText("alpha beta\n");
     expect(textAt(0, 5)).toBeNull();

@@ -32,6 +32,8 @@ Without Alt, moving the mouse shows no link style and clicking keeps the editor'
 
 What a click does is up to whichever provider answered. With the bundled packages, that means jumping to a symbol's declaration; a language server, through `ide`, resolves it more precisely than a tags file can.
 
+Word targets are complete tokens of at most4096 UTF-16 units. Longer tokens are declined before calling providers, rather than sending a truncated word; locating an ordinary word on a very long line reads only nearby text.
+
 ## Services
 
 - [`hyperclick.provider`](docs/hyperclick.provider.md): consumed to let packages resolve source words and rendered locations.
