@@ -803,6 +803,21 @@ describe("hyperclick", () => {
   });
 
   describe("provider removal", () => {
+    it("retires resolved callbacks across None and resumes with a fresh lookup", async () => {
+      register();
+      const grammar = editor.getGrammar();
+      const controller = mainModule.editors.get(editor);
+      const old = await controller.lookup(new Range([0, 0], [0, 5]));
+      editor.setGrammar(lumine.grammars.nullGrammar);
+      expect(controller.markers).toEqual([]);
+      expect(await controller.confirm(old)).toBeFalse();
+      editor.setGrammar(grammar);
+      expect(await controller.confirm(old)).toBeFalse();
+      const fresh = await controller.lookup(new Range([0, 0], [0, 5]));
+      expect(await controller.confirm(fresh)).toBeTrue();
+      expect(calls).toEqual(["alpha"]);
+    });
+
     it("clears displayed links immediately and refuses their cached callbacks", async () => {
       const subscription = register();
       const controller = mainModule.editors.get(editor);
